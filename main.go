@@ -39,6 +39,7 @@ func main() {
 	}
 
 	varName := "global" + typeTarget
+	isSetVarName := varName + "Set"
 
 	f := jen.NewFile(typeObject.Pkg().Name())
 
@@ -47,7 +48,6 @@ func main() {
 	f.PackageComment("This file provides the wrappers for exported methods of a global var `" + varName + "`.")
 
 	imports := make(map[string]struct{})
-
 	funcs := jen.Empty()
 
 	givenType := typeObject.Type()
@@ -70,6 +70,7 @@ func main() {
 		params := make([]jen.Code, 0, signatureParams.Len())
 		paramNames := make([]jen.Code, 0, signatureParams.Len())
 
+		// Get imported packages from params and prepare param names and types
 		for j := 0; j < signatureParams.Len(); j++ {
 			param := signatureParams.At(j)
 			paramType := param.Type().String()
@@ -87,6 +88,7 @@ func main() {
 		results := signature.Results()
 		returnTypes := make([]string, 0, results.Len())
 
+		// Get imported packages from returns and parepare return types
 		for j := 0; j < results.Len(); j++ {
 			resultType := results.At(j).Type().String()
 
@@ -112,7 +114,7 @@ func main() {
 				jen.Panic(jen.Lit(varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + methodObject.Name())),
 			)
 		} else {
-			globalVarCheck = jen.If(jen.Op("!").Id(varName + "Set")).Block(
+			globalVarCheck = jen.If(jen.Op("!").Id(isSetVarName)).Block(
 				jen.Panic(jen.Lit(varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + methodObject.Name())),
 			)
 		}
@@ -146,8 +148,8 @@ func main() {
 
 	var setBoolVarCode jen.Code
 	if !pointer {
-		f.Id("var").Id(varName + "Set").Id("bool")
-		setBoolVarCode = jen.Id(varName + "Set").Op("=").Id("true")
+		f.Id("var").Id(isSetVarName).Id("bool")
+		setBoolVarCode = jen.Id(isSetVarName).Op("=").Id("true")
 	}
 
 	f.Func().Id("SetGlobal"+typeTarget).Params(jen.Id("v").Id(typeName)).Block(
