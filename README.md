@@ -68,7 +68,7 @@ func SetGlobalDog(v *Dog) {
 // Bark calls `globalDog.Bark`.
 func Bark() string {
 	if globalDog == nil {
-		panic("globalDog instance is not set. Call SetGlobalDog(var) before calling Bark")
+		panic("globalDog must be set before calling Bark()")
 	}
 
 	return globalDog.Bark()
@@ -77,7 +77,7 @@ func Bark() string {
 // Validate calls `globalDog.Validate`.
 func Validate() error {
 	if globalDog == nil {
-		panic("globalDog instance is not set. Call SetGlobalDog(var) before calling Validate")
+		panic("globalDog must be set before calling Validate()")
 	}
 
 	return globalDog.Validate()
