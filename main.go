@@ -1,7 +1,12 @@
 // This program generates Go code with wrappers for exported methods of a global var.
 //
 // Usage:
-// //go:generate generate-singleton-functions github.com/my/package/path MyStruct
+//
+//	Generates functions for exported methods on MyStruct
+//	//go:generate gen-singleton-functions github.com/my/package/path MyStruct
+//
+//	Generates functions for exported methods on *MyStruct
+//	//go:generate gen-singleton-functions github.com/my/package/path *MyStruct
 package main
 
 import (
@@ -30,9 +35,7 @@ func main() {
 	pkg := loadPackage(packageName)
 
 	typeName := os.Args[2]
-	var pointer bool
-	var typeTarget string
-	typeTarget, pointer = strings.CutPrefix(typeName, "*")
+	typeTarget, pointer := strings.CutPrefix(typeName, "*")
 	typeObject := pkg.Types.Scope().Lookup(typeTarget)
 	if typeObject == nil {
 		log.Fatalf("unable to find type %s", typeTarget)
@@ -50,17 +53,16 @@ func main() {
 	imports := make(map[string]struct{})
 	funcs := jen.Empty()
 
-	givenType := typeObject.Type()
+	typeObjectMeta := typeObject.Type()
 	if pointer {
-		givenType = types.NewPointer(givenType)
+		typeObjectMeta = types.NewPointer(typeObjectMeta)
 	}
-	methods := types.NewMethodSet(givenType)
+	methods := types.NewMethodSet(typeObjectMeta)
 	for i := 0; i < methods.Len(); i++ {
-		method := methods.At(i)
-		methodObject := method.Obj()
+		method := methods.At(i).Obj()
 
 		// Skip private methods
-		if !methodObject.Exported() {
+		if !method.Exported() {
 			continue
 		}
 
@@ -102,26 +104,28 @@ func main() {
 		}
 
 		var returnType string
-		var lastStatement jen.Code = jen.Id(varName).Dot(methodObject.Name()).Call(paramNames...)
+		var lastStatement jen.Code = jen.Id(varName).Dot(method.Name()).Call(paramNames...)
+
 		if len(returnTypes) > 0 {
-			lastStatement = jen.Return(lastStatement)
 			returnType = "(" + strings.Join(returnTypes, ", ") + ")"
+			lastStatement = jen.Return(lastStatement)
 		}
 
+		panicMsg := varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + method.Name()
 		var globalVarCheck jen.Code
 		if pointer {
 			globalVarCheck = jen.If(jen.Id(varName).Op("==").Id("nil")).Block(
-				jen.Panic(jen.Lit(varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + methodObject.Name())),
+				jen.Panic(jen.Lit(panicMsg)),
 			)
 		} else {
 			globalVarCheck = jen.If(jen.Op("!").Id(isSetVarName)).Block(
-				jen.Panic(jen.Lit(varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + methodObject.Name())),
+				jen.Panic(jen.Lit(panicMsg)),
 			)
 		}
 
-		funcs.Comment(methodObject.Name() + " calls `" + varName + "." + methodObject.Name() + "`.")
+		funcs.Comment(method.Name() + " calls `" + varName + "." + method.Name() + "`.")
 		funcs.Line()
-		funcs.Func().Id(methodObject.Name()).Params(
+		funcs.Func().Id(method.Name()).Params(
 			params...,
 		).Id(returnType).Block(
 			globalVarCheck,
@@ -159,12 +163,12 @@ func main() {
 
 	f.Add(funcs)
 
-	goFile := os.Getenv("GOFILE")
-	ext := filepath.Ext(goFile)
-	baseFilename := goFile[0 : len(goFile)-len(ext)]
-	targetFilename := baseFilename + "_gen.go"
+	filename := os.Getenv("GOFILE")
+	ext := filepath.Ext(filename)
+	filename, _ = strings.CutSuffix(filename, ext)
+	filename = filename + "_gen.go"
 
-	if err := f.Save(targetFilename); err != nil {
+	if err := f.Save(filename); err != nil {
 		log.Fatal(err)
 	}
 }
