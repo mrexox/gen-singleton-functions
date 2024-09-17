@@ -1,5 +1,11 @@
 # gen-singleton-functions
 
+## Installation
+
+```bash
+go install github.com/mrexox/gen-singleton-functions@latest
+```
+
 ## Usage
 
 Add the following line in your source code
