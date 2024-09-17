@@ -21,7 +21,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var rePkgReferencedType = regexp.MustCompile(`([^\[\]]+)\.[^.]+`)
+var rePkgReferencedType = regexp.MustCompile(`([^*\[\]]+)\.[^.]+`)
 
 //nolint:intrange
 func main() {
@@ -111,7 +111,7 @@ func main() {
 			lastStatement = jen.Return(lastStatement)
 		}
 
-		panicMsg := varName + " instance is not set. Call SetGlobal" + typeTarget + "(var) before calling " + method.Name()
+		panicMsg := varName + " must be set before calling " + method.Name() + "()"
 		var globalVarCheck jen.Code
 		if pointer {
 			globalVarCheck = jen.If(jen.Id(varName).Op("==").Id("nil")).Block(
