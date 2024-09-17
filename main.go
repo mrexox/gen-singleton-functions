@@ -191,7 +191,7 @@ func loadPackage(path string) *packages.Package {
 //	  github.com/somelib/name.Map -> name.Map
 //		[]github.com/somelib/name.Item -> []name.Item
 func extractImports(paramType string, imports map[string]struct{}) string {
-	if strings.Index(paramType, ".") <= 0 {
+	if strings.Index(paramType, ".") < 0 {
 		return paramType
 	}
 
